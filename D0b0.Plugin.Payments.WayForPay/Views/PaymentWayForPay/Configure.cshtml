@@ -1,0 +1,76 @@
+﻿@{
+	Layout = "";
+}
+@using Nop.Web.Framework
+@model  D0b0.Plugin.Payments.WayForPay.Models.ConfigurationModel
+
+@using (Html.BeginForm())
+{
+	@Html.AntiForgeryToken()
+
+	<div class="panel-group">
+		<div class="panel panel-default">
+			<div class="panel-body">
+				<div class="form-group">
+					<div class="col-md-3">
+						@Html.NopLabelFor(model => model.MerchantAccount)
+					</div>
+					<div class="col-md-9">
+						@Html.NopEditorFor(model => model.MerchantAccount)
+						@Html.ValidationMessageFor(model => model.MerchantAccount)
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-md-3">
+						@Html.NopLabelFor(model => model.MerchantSecretKey)
+					</div>
+					<div class="col-md-9">
+						@Html.NopEditorFor(model => model.MerchantSecretKey)
+						@Html.ValidationMessageFor(model => model.MerchantSecretKey)
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-md-3">
+						@Html.NopLabelFor(model => model.MerchantDomainName)
+					</div>
+					<div class="col-md-9">
+						@Html.NopEditorFor(model => model.MerchantDomainName)
+						@Html.ValidationMessageFor(model => model.MerchantDomainName)
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-md-3">
+						@Html.NopLabelFor(model => model.AdditionalFeePercentage)
+					</div>
+					<div class="col-md-9">
+						@Html.NopEditorFor(model => model.AdditionalFeePercentage)
+						@Html.ValidationMessageFor(model => model.AdditionalFeePercentage)
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-md-3">
+						@Html.NopLabelFor(model => model.AdditionalFee)
+					</div>
+					<div class="col-md-9">
+						@Html.NopEditorFor(model => model.AdditionalFee)
+						@Html.ValidationMessageFor(model => model.AdditionalFee)
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-md-3">
+						@Html.NopLabelFor(model => model.UseWidget)
+					</div>
+					<div class="col-md-9">
+						@Html.NopEditorFor(model => model.UseWidget)
+						@Html.ValidationMessageFor(model => model.UseWidget)
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-md-9 col-md-offset-3">
+						<input type="submit" name="save" class="btn bg-blue" value="@T("Admin.Common.Save")"/>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+}

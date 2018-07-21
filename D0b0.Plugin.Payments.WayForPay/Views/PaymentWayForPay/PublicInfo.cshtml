@@ -1,0 +1,11 @@
+﻿@{
+	Layout = "";
+}
+@model D0b0.Plugin.Payments.WayForPay.Models.PublicInfoModel
+
+@if (Model.ShowInvoiceButton)
+{
+	<button type="button" name="invoice_way4pay" id="invoice_way4pay" class="btn btn-primary">
+		Send Invoice (WayForPay)
+	</button>
+}

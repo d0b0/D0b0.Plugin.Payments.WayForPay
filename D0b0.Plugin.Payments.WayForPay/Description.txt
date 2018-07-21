@@ -1,0 +1,9 @@
+﻿Group: Payment methods
+FriendlyName: WayForPay
+SystemName: Payments.WayForPay
+Version: 1.00
+SupportedVersions: 3.80
+Author: D0b0
+DisplayOrder: 1
+FileName: D0b0.Plugin.Payments.WayForPay.dll
+Description: This plugin allows to make payments using WayForPay
