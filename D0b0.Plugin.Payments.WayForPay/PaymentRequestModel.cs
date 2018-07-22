@@ -1,6 +1,6 @@
 ﻿namespace D0b0.Plugin.Payments.WayForPay
 {
-	public class WayForPayConfig
+	public class PaymentRequestModel
 	{
 		public string MerchantAccount { get; set; }
 		public string MerchantDomainName { get; set; }

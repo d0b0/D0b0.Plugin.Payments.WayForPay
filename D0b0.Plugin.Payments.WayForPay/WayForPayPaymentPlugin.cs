@@ -1,20 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
 using System.Text;
 using System.Web;
 using System.Web.Routing;
 using D0b0.Plugin.Payments.WayForPay.Controllers;
 using D0b0.Plugin.Payments.WayForPay.Services;
 using Newtonsoft.Json;
-using Nop.Core;
-using Nop.Core.Domain.Directory;
 using Nop.Core.Domain.Orders;
 using Nop.Core.Domain.Payments;
 using Nop.Core.Plugins;
 using Nop.Services.Cms;
-using Nop.Services.Directory;
 using Nop.Services.Orders;
 using Nop.Services.Payments;
 
@@ -23,27 +18,18 @@ namespace D0b0.Plugin.Payments.WayForPay
 	public class WayForPayPaymentPlugin : BasePlugin, IPaymentMethod, IWidgetPlugin
 	{
 		private readonly WayForPayPaymentSettings _wayForPayPaymentSettings;
-		private readonly CurrencySettings _currencySettings;
 		private readonly HttpContextBase _httpContext;
 		private readonly IOrderTotalCalculationService _orderTotalCalculationService;
-		private readonly IWebHelper _webHelper;
-		private readonly ICurrencyService _currencyService;
 		private readonly IWayForPayService _wayForPayService;
 
 		public WayForPayPaymentPlugin(
 			WayForPayPaymentSettings wayForPayPaymentSettings,
-			CurrencySettings currencySettings,
 			HttpContextBase httpContext,
 			IOrderTotalCalculationService orderTotalCalculationService,
-			IWebHelper webHelper,
-			ICurrencyService currencyService,
 			IWayForPayService wayForPayService)
 		{
 			_wayForPayPaymentSettings = wayForPayPaymentSettings;
 			_orderTotalCalculationService = orderTotalCalculationService;
-			_webHelper = webHelper;
-			_currencyService = currencyService;
-			_currencySettings = currencySettings;
 			_httpContext = httpContext;
 			_wayForPayService = wayForPayService;
 		}
@@ -55,87 +41,15 @@ namespace D0b0.Plugin.Payments.WayForPay
 
 		public void PostProcessPayment(PostProcessPaymentRequest postProcessPaymentRequest)
 		{
-			var config = ConvertToConfig(postProcessPaymentRequest);
+			var model = _wayForPayService.BuildPaymentRequestModel(postProcessPaymentRequest);
 
 			if (_wayForPayPaymentSettings.UseWidget)
 			{
-				var widgetConfig = new
-				{
-					merchantAccount = config.MerchantAccount,
-					merchantDomainName = config.MerchantDomainName,
-					authorizationType = config.AuthorizationType,
-					merchantSignature = config.MerchantSignature,
-					merchantTransactionSecureType = config.MerchantTransactionSecureType,
-					orderReference = config.OrderReference,
-					orderDate = config.OrderDate,
-					amount = config.Amount,
-					currency = config.Currency,
-					productName = config.ProductName,
-					productPrice = config.ProductPrice,
-					productCount = config.ProductCount,
-					clientFirstName = config.ClientFirstName,
-					clientLastName = config.ClientLastName,
-					clientEmail = config.ClientEmail,
-					clientPhone = config.ClientPhone,
-					language = config.Language,
-				};
-				var script = "<script type=\"text/javascript\">" +
-					"var config = " + JsonConvert.SerializeObject(widgetConfig) + ";" +
-					"var data = undefined;" +
-					"var wayforpay = new Wayforpay();" +
-					"var pay = function () {" +
-					"wayforpay.run(config," +
-					"function (response) { data = response; }," +
-					"function (response) { }," +
-					"function (response) { });" +
-					"}; pay(); " +
-					"window.addEventListener(\"message\", function(event){ " +
-					"if(event.data === 'WfpWidgetEventClose') { $.redirect('" + config.ReturnUrl + "', data || config); } });" +
-					"</script>";
-				var content = new
-				{
-					update_section = new
-					{
-						name = "confirm-order",
-						html = script
-					}
-				};
-				string json = JsonConvert.SerializeObject(content);
-				_httpContext.Response.ContentType = "application/json; charset=utf-8";
-				_httpContext.Response.Write(json);
-				_httpContext.Response.End();
+				ProcessWidgetPayment(model);
 				return;
 			}
 
-			Dictionary<string, object> postData = new Dictionary<string, object>
-			{
-				{"orderReference", config.OrderReference},
-				{"orderDate", config.OrderDate},
-				{"merchantAuthType", config.AuthorizationType},
-				{"merchantAccount", config.MerchantAccount},
-				{"merchantDomainName", config.MerchantDomainName},
-				{"merchantTransactionSecureType", config.MerchantTransactionSecureType},
-				{"amount", config.Amount},
-				{"currency", config.Currency},
-				{"serviceUrl", config.ServiceUrl},
-				{"returnUrl", config.ReturnUrl},
-				{"language", config.Language},
-				{"productName", config.ProductName},
-				{"productPrice", config.ProductPrice},
-				{"productCount", config.ProductCount},
-				{"clientFirstName", config.ClientFirstName},
-				{"clientLastName", config.ClientLastName},
-				{"clientPhone", config.ClientPhone},
-				{"clientEmail", config.ClientEmail},
-				{"clientCity", config.ClientCity},
-				{"clientAddress", config.ClientAddress},
-				{"clientCountry", config.ClientCountry},
-				{"merchantSignature", config.MerchantSignature}
-			};
-
-			var postForm = BuildPostForm(WayForPayConstants.PaymentUrl, postData);
-			HttpContext.Current.Response.Write(postForm);
-			HttpContext.Current.Response.End();
+			ProcessRedirectPayment(model);
 		}
 
 		public bool HidePaymentMethod(IList<ShoppingCartItem> cart)
@@ -286,79 +200,86 @@ namespace D0b0.Plugin.Payments.WayForPay
 			};
 		}
 
-		private WayForPayConfig ConvertToConfig(PostProcessPaymentRequest paymentRequest)
+		private void ProcessWidgetPayment(PaymentRequestModel model)
 		{
-			var config = new WayForPayConfig
+			var config = new
 			{
-				OrderReference = paymentRequest.Order.Id,
-				OrderDate = (int)(paymentRequest.Order.CreatedOnUtc.Subtract(new DateTime(1970, 1, 1))).TotalSeconds,
-				AuthorizationType = "SimpleSignature",
-				MerchantAccount = _wayForPayPaymentSettings.MerchantAccount,
-				MerchantDomainName = _wayForPayPaymentSettings.MerchantDomainName,
-				MerchantTransactionSecureType = "AUTO",
-				Amount = paymentRequest.Order.OrderTotal.ToString("0.00", CultureInfo.InvariantCulture),
-				Currency = _currencyService.GetCurrencyById(_currencySettings.PrimaryStoreCurrencyId).CurrencyCode,
-				Language = "RU",
-				ServiceUrl = _webHelper.GetStoreLocation(false),
-				ReturnUrl = _webHelper.GetStoreLocation(false) + "Plugins/PaymentWayForPay/IPNHandler"
+				merchantAccount = model.MerchantAccount,
+				merchantDomainName = model.MerchantDomainName,
+				authorizationType = model.AuthorizationType,
+				merchantSignature = model.MerchantSignature,
+				merchantTransactionSecureType = model.MerchantTransactionSecureType,
+				orderReference = model.OrderReference,
+				orderDate = model.OrderDate,
+				amount = model.Amount,
+				currency = model.Currency,
+				productName = model.ProductName,
+				productPrice = model.ProductPrice,
+				productCount = model.ProductCount,
+				clientFirstName = model.ClientFirstName,
+				clientLastName = model.ClientLastName,
+				clientEmail = model.ClientEmail,
+				clientPhone = model.ClientPhone,
+				language = model.Language,
+			};
+			var script = "<script type=\"text/javascript\">" +
+				"var config = " + JsonConvert.SerializeObject(config) + ";" +
+				"var data = undefined;" +
+				"var wayforpay = new Wayforpay();" +
+				"var pay = function () {" +
+				"wayforpay.run(config," +
+				"function (response) { data = response; }," +
+				"function (response) { }," +
+				"function (response) { });" +
+				"}; pay(); " +
+				"window.addEventListener(\"message\", function(event){ " +
+				"if(event.data === 'WfpWidgetEventClose') { $.redirect('" + model.ReturnUrl + "', data || config); } });" +
+				"</script>";
+			var content = new
+			{
+				update_section = new
+				{
+					name = "confirm-order",
+					html = script
+				}
+			};
+			string json = JsonConvert.SerializeObject(content);
+			_httpContext.Response.ContentType = "application/json; charset=utf-8";
+			_httpContext.Response.Write(json);
+			_httpContext.Response.End();
+		}
+
+		private void ProcessRedirectPayment(PaymentRequestModel model)
+		{
+			Dictionary<string, object> postData = new Dictionary<string, object>
+			{
+				{"orderReference", model.OrderReference},
+				{"orderDate", model.OrderDate},
+				{"merchantAuthType", model.AuthorizationType},
+				{"merchantAccount", model.MerchantAccount},
+				{"merchantDomainName", model.MerchantDomainName},
+				{"merchantTransactionSecureType", model.MerchantTransactionSecureType},
+				{"amount", model.Amount},
+				{"currency", model.Currency},
+				{"serviceUrl", model.ServiceUrl},
+				{"returnUrl", model.ReturnUrl},
+				{"language", model.Language},
+				{"productName", model.ProductName},
+				{"productPrice", model.ProductPrice},
+				{"productCount", model.ProductCount},
+				{"clientFirstName", model.ClientFirstName},
+				{"clientLastName", model.ClientLastName},
+				{"clientPhone", model.ClientPhone},
+				{"clientEmail", model.ClientEmail},
+				{"clientCity", model.ClientCity},
+				{"clientAddress", model.ClientAddress},
+				{"clientCountry", model.ClientCountry},
+				{"merchantSignature", model.MerchantSignature}
 			};
 
-			//products
-			var orderProducts = paymentRequest.Order.OrderItems.ToList();
-			var productNames = new List<string>();
-			var productQty = new List<int>();
-			var productPrices = new List<string>();
-
-			foreach (OrderItem item in orderProducts)
-			{
-				productNames.Add(item.Product.Name);
-				productPrices.Add(item.UnitPriceInclTax.ToString("0.00", CultureInfo.InvariantCulture));
-				productQty.Add(item.Quantity);
-			}
-
-			config.ProductName = productNames.ToArray();
-			config.ProductPrice = productPrices.ToArray();
-			config.ProductCount = productQty.ToArray();
-
-			// phone
-			var phone = paymentRequest.Order.BillingAddress.PhoneNumber;
-			if (phone.Length == 10)
-			{
-				phone = $"38{phone}";
-			}
-			else if (phone.Length == 11)
-			{
-				phone = $"3{phone}";
-			}
-			config.ClientPhone = phone;
-
-			// client
-			config.ClientFirstName = paymentRequest.Order.BillingAddress.FirstName;
-			config.ClientLastName = paymentRequest.Order.BillingAddress.LastName;
-			config.ClientEmail = paymentRequest.Order.BillingAddress.Email;
-			config.ClientCity = paymentRequest.Order.BillingAddress.City;
-			config.ClientAddress = paymentRequest.Order.BillingAddress.Address1;
-
-			// country
-			var billingCountry = paymentRequest.Order.BillingAddress.Country;
-			config.ClientCountry = billingCountry != null ? billingCountry.ThreeLetterIsoCode : "";
-
-			// signature
-			Dictionary<string, object> sigDict = new Dictionary<string, object>
-			{
-				{"merchantAccount", config.MerchantAccount },
-				{"merchantDomainName", config.MerchantDomainName },
-				{"orderReference", config.OrderReference },
-				{"orderDate", config.OrderDate },
-				{"amount", config.Amount },
-				{"currency", config.Currency },
-				{"productName", config.ProductName },
-				{"productCount", config.ProductCount },
-				{"productPrice", config.ProductPrice }
-			};
-			config.MerchantSignature = _wayForPayService.GetRequestSignature(sigDict);
-
-			return config;
+			var postForm = BuildPostForm(WayForPayConstants.PaymentUrl, postData);
+			_httpContext.Response.Write(postForm);
+			_httpContext.Response.End();
 		}
 
 		private string BuildPostForm(string url, IDictionary<string, object> data)

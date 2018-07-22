@@ -82,7 +82,7 @@
     <Compile Include="RouteProvider.cs" />
     <Compile Include="Services\IWayForPayService.cs" />
     <Compile Include="Services\WayForPayService.cs" />
-    <Compile Include="WayForPayConfig.cs" />
+    <Compile Include="PaymentRequestModel.cs" />
     <Compile Include="WayForPayConstants.cs" />
     <Compile Include="WayForPayPaymentSettings.cs" />
     <Compile Include="WayForPayPaymentPlugin.cs" />
