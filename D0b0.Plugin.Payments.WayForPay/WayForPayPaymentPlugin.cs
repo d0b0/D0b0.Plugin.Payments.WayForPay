@@ -22,43 +22,20 @@ namespace D0b0.Plugin.Payments.WayForPay
 {
 	public class WayForPayPaymentPlugin : BasePlugin, IPaymentMethod, IWidgetPlugin
 	{
-		private const string SignatureSeparator = ";";
-		private static readonly string[] KeysForSignature = {
-			"merchantAccount",
-			"merchantDomainName",
-			"orderReference",
-			"orderDate",
-			"amount",
-			"currency",
-			"productName",
-			"productCount",
-			"productPrice"
-		};
-		private static readonly string[] KeysForResponseSignature = {
-			"merchantAccount",
-			"orderReference",
-			"amount",
-			"currency",
-			"authCode",
-			"cardPan",
-			"transactionStatus",
-			"reasonCode"
-		};
-
 		private readonly WayForPayPaymentSettings _wayForPayPaymentSettings;
+		private readonly CurrencySettings _currencySettings;
+		private readonly HttpContextBase _httpContext;
 		private readonly IOrderTotalCalculationService _orderTotalCalculationService;
 		private readonly IWebHelper _webHelper;
 		private readonly ICurrencyService _currencyService;
-		private readonly CurrencySettings _currencySettings;
-		private readonly HttpContextBase _httpContext;
 
 		public WayForPayPaymentPlugin(
 			WayForPayPaymentSettings wayForPayPaymentSettings,
+			CurrencySettings currencySettings,
+			HttpContextBase httpContext,
 			IOrderTotalCalculationService orderTotalCalculationService,
 			IWebHelper webHelper,
-			ICurrencyService currencyService,
-			CurrencySettings currencySettings,
-			HttpContextBase httpContext)
+			ICurrencyService currencyService)
 		{
 			_wayForPayPaymentSettings = wayForPayPaymentSettings;
 			_orderTotalCalculationService = orderTotalCalculationService;
@@ -109,7 +86,8 @@ namespace D0b0.Plugin.Payments.WayForPay
 					"function (response) { }," +
 					"function (response) { });" +
 					"}; pay(); " +
-					"window.addEventListener(\"message\", function(event){if(event.data === 'WfpWidgetEventClose') { $.redirect('" + config.ReturnUrl + "', data || config); } });" +
+					"window.addEventListener(\"message\", function(event){ " +
+					"if(event.data === 'WfpWidgetEventClose') { $.redirect('" + config.ReturnUrl + "', data || config); } });" +
 					"</script>";
 				var content = new
 				{
@@ -125,8 +103,6 @@ namespace D0b0.Plugin.Payments.WayForPay
 				_httpContext.Response.End();
 				return;
 			}
-
-			var purchaseUrl = "https://secure.wayforpay.com/pay";
 
 			Dictionary<string, object> postData = new Dictionary<string, object>
 			{
@@ -154,7 +130,7 @@ namespace D0b0.Plugin.Payments.WayForPay
 				{"merchantSignature", config.MerchantSignature}
 			};
 
-			var postForm = BuildPostForm(purchaseUrl, postData);
+			var postForm = BuildPostForm(WayForPayConstants.PaymentUrl, postData);
 			HttpContext.Current.Response.Write(postForm);
 			HttpContext.Current.Response.End();
 		}
@@ -309,7 +285,7 @@ namespace D0b0.Plugin.Payments.WayForPay
 
 		public string GetResponseSignature(IDictionary<string, object> data)
 		{
-			return GetSignature(data, KeysForResponseSignature);
+			return GetSignature(data, WayForPayConstants.KeysForResponseSignature);
 		}
 
 		private WayForPayConfig ConvertToConfig(PostProcessPaymentRequest paymentRequest)
@@ -417,7 +393,7 @@ namespace D0b0.Plugin.Payments.WayForPay
 
 		private string GetRequestSignature(IDictionary<string, object> data)
 		{
-			return GetSignature(data, KeysForSignature);
+			return GetSignature(data, WayForPayConstants.KeysForSignature);
 		}
 
 		private string GetSignature(IDictionary<string, object> data, string[] keys)
@@ -444,7 +420,7 @@ namespace D0b0.Plugin.Payments.WayForPay
 			}
 
 			var key = Encoding.UTF8.GetBytes(_wayForPayPaymentSettings.MerchantSecretKey);
-			var value = Encoding.UTF8.GetBytes(string.Join(SignatureSeparator, items));
+			var value = Encoding.UTF8.GetBytes(string.Join(WayForPayConstants.SignatureSeparator, items));
 			using (var hmacmd5 = new HMACMD5(key))
 			{
 				hmacmd5.ComputeHash(value);

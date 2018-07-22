@@ -18,10 +18,6 @@ namespace D0b0.Plugin.Payments.WayForPay.Controllers
 {
 	public class PaymentWayForPayController : BasePaymentController
 	{
-		private const string OkReasonCode = "1100";
-		private const string OrderApproved = "Approved";
-		private const string PaymentMethodPrefix = "WayForPay IPN:";
-
 		private readonly WayForPayPaymentSettings _wayForPayPaymentSettings;
 		private readonly PaymentSettings _paymentSettings;
 		private readonly ISettingService _settingService;
@@ -171,13 +167,13 @@ namespace D0b0.Plugin.Payments.WayForPay.Controllers
 
 			if (!IsPaymentValid(form))
 			{
-				WriteOrderNote(order, PaymentMethodPrefix + " Not valid payment");
+				WriteOrderNote(order, WayForPayConstants.PaymentMethodPrefix + " Not valid payment");
 				return RedirectToRoute("OrderDetails", new { orderId = order.Id });
 			}
 
 			if (!IsSignatureValid(processor, form))
 			{
-				WriteOrderNote(order, PaymentMethodPrefix + " Not valid signature");
+				WriteOrderNote(order, WayForPayConstants.PaymentMethodPrefix + " Not valid signature");
 				return RedirectToRoute("OrderDetails", new { orderId = order.Id });
 			}
 
@@ -189,7 +185,7 @@ namespace D0b0.Plugin.Payments.WayForPay.Controllers
 			}
 
 			var sb = new StringBuilder();
-			sb.AppendLine(PaymentMethodPrefix);
+			sb.AppendLine(WayForPayConstants.PaymentMethodPrefix);
 			sb.AppendLine("New payment status: " + newPaymentStatus);
 
 			WriteOrderNote(order, sb.ToString());
@@ -215,7 +211,7 @@ namespace D0b0.Plugin.Payments.WayForPay.Controllers
 
 			return !string.IsNullOrEmpty(merchantSignature) &&
 				!string.IsNullOrEmpty(reasonCode) &&
-				reasonCode.Equals(OkReasonCode, StringComparison.InvariantCultureIgnoreCase);
+				reasonCode.Equals(WayForPayConstants.OkReasonCode, StringComparison.InvariantCultureIgnoreCase);
 		}
 
 		private bool IsSignatureValid(WayForPayPaymentPlugin processor, FormCollection form)
@@ -228,13 +224,13 @@ namespace D0b0.Plugin.Payments.WayForPay.Controllers
 		private bool IsOrderApproved(FormCollection form)
 		{
 			var transactionStatus = GetValue(form, "transactionStatus");
-			return transactionStatus.Equals(OrderApproved, StringComparison.InvariantCultureIgnoreCase);
+			return transactionStatus.Equals(WayForPayConstants.OrderStatusApproved, StringComparison.InvariantCultureIgnoreCase);
 		}
 
 		private void WriteResponseNote(Order order, FormCollection form)
 		{
 			var sbDebug = new StringBuilder();
-			sbDebug.AppendLine(PaymentMethodPrefix);
+			sbDebug.AppendLine(WayForPayConstants.PaymentMethodPrefix);
 
 			foreach (var key in form.AllKeys)
 			{
