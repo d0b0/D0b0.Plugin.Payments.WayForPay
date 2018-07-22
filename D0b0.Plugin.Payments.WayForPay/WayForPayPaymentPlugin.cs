@@ -2,11 +2,11 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Security.Cryptography;
 using System.Text;
 using System.Web;
 using System.Web.Routing;
 using D0b0.Plugin.Payments.WayForPay.Controllers;
+using D0b0.Plugin.Payments.WayForPay.Services;
 using Newtonsoft.Json;
 using Nop.Core;
 using Nop.Core.Domain.Directory;
@@ -28,6 +28,7 @@ namespace D0b0.Plugin.Payments.WayForPay
 		private readonly IOrderTotalCalculationService _orderTotalCalculationService;
 		private readonly IWebHelper _webHelper;
 		private readonly ICurrencyService _currencyService;
+		private readonly IWayForPayService _wayForPayService;
 
 		public WayForPayPaymentPlugin(
 			WayForPayPaymentSettings wayForPayPaymentSettings,
@@ -35,7 +36,8 @@ namespace D0b0.Plugin.Payments.WayForPay
 			HttpContextBase httpContext,
 			IOrderTotalCalculationService orderTotalCalculationService,
 			IWebHelper webHelper,
-			ICurrencyService currencyService)
+			ICurrencyService currencyService,
+			IWayForPayService wayForPayService)
 		{
 			_wayForPayPaymentSettings = wayForPayPaymentSettings;
 			_orderTotalCalculationService = orderTotalCalculationService;
@@ -43,6 +45,7 @@ namespace D0b0.Plugin.Payments.WayForPay
 			_currencyService = currencyService;
 			_currencySettings = currencySettings;
 			_httpContext = httpContext;
+			_wayForPayService = wayForPayService;
 		}
 
 		public ProcessPaymentResult ProcessPayment(ProcessPaymentRequest processPaymentRequest)
@@ -283,11 +286,6 @@ namespace D0b0.Plugin.Payments.WayForPay
 			};
 		}
 
-		public string GetResponseSignature(IDictionary<string, object> data)
-		{
-			return GetSignature(data, WayForPayConstants.KeysForResponseSignature);
-		}
-
 		private WayForPayConfig ConvertToConfig(PostProcessPaymentRequest paymentRequest)
 		{
 			var config = new WayForPayConfig
@@ -358,7 +356,7 @@ namespace D0b0.Plugin.Payments.WayForPay
 				{"productCount", config.ProductCount },
 				{"productPrice", config.ProductPrice }
 			};
-			config.MerchantSignature = GetRequestSignature(sigDict);
+			config.MerchantSignature = _wayForPayService.GetRequestSignature(sigDict);
 
 			return config;
 		}
@@ -389,43 +387,6 @@ namespace D0b0.Plugin.Payments.WayForPay
 			scriptBuilder.Append($"v{str}.submit();");
 			scriptBuilder.Append("</script>");
 			return formBuilder + scriptBuilder.ToString();
-		}
-
-		private string GetRequestSignature(IDictionary<string, object> data)
-		{
-			return GetSignature(data, WayForPayConstants.KeysForSignature);
-		}
-
-		private string GetSignature(IDictionary<string, object> data, string[] keys)
-		{
-			var items = new List<object>();
-			foreach (var item in keys)
-			{
-				if (!data.ContainsKey(item))
-				{
-					items.Add(string.Empty);
-					continue;
-				}
-
-				var array = data[item] as Array;
-				if (array != null)
-				{
-					foreach (var subItem in array)
-					{
-						items.Add(subItem);
-					}
-					continue;
-				}
-				items.Add(data[item]);
-			}
-
-			var key = Encoding.UTF8.GetBytes(_wayForPayPaymentSettings.MerchantSecretKey);
-			var value = Encoding.UTF8.GetBytes(string.Join(WayForPayConstants.SignatureSeparator, items));
-			using (var hmacmd5 = new HMACMD5(key))
-			{
-				hmacmd5.ComputeHash(value);
-				return BitConverter.ToString(hmacmd5.Hash).Replace("-", "").ToLower();
-			}
 		}
 	}
 }

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Web.Mvc;
 using D0b0.Plugin.Payments.WayForPay.Models;
+using D0b0.Plugin.Payments.WayForPay.Services;
 using Nop.Admin.Models.Orders;
 using Nop.Core;
 using Nop.Core.Domain.Orders;
@@ -26,6 +27,7 @@ namespace D0b0.Plugin.Payments.WayForPay.Controllers
 		private readonly IOrderProcessingService _orderProcessingService;
 		private readonly ILocalizationService _localizationService;
 		private readonly IWebHelper _webHelper;
+		private readonly IWayForPayService _wayForPayService;
 
 		public PaymentWayForPayController(
 			WayForPayPaymentSettings wayForPayPaymentSettings,
@@ -35,7 +37,8 @@ namespace D0b0.Plugin.Payments.WayForPay.Controllers
 			IOrderService orderService,
 			IOrderProcessingService orderProcessingService,
 			ILocalizationService localizationService,
-			IWebHelper webHelper)
+			IWebHelper webHelper,
+			IWayForPayService wayForPayService)
 		{
 			_settingService = settingService;
 			_paymentService = paymentService;
@@ -45,6 +48,7 @@ namespace D0b0.Plugin.Payments.WayForPay.Controllers
 			_wayForPayPaymentSettings = wayForPayPaymentSettings;
 			_webHelper = webHelper;
 			_paymentSettings = paymentSettings;
+			_wayForPayService = wayForPayService;
 		}
 
 		public override IList<string> ValidatePaymentForm(FormCollection form)
@@ -171,7 +175,7 @@ namespace D0b0.Plugin.Payments.WayForPay.Controllers
 				return RedirectToRoute("OrderDetails", new { orderId = order.Id });
 			}
 
-			if (!IsSignatureValid(processor, form))
+			if (!IsValidSignature(form))
 			{
 				WriteOrderNote(order, WayForPayConstants.PaymentMethodPrefix + " Not valid signature");
 				return RedirectToRoute("OrderDetails", new { orderId = order.Id });
@@ -214,11 +218,10 @@ namespace D0b0.Plugin.Payments.WayForPay.Controllers
 				reasonCode.Equals(WayForPayConstants.OkReasonCode, StringComparison.InvariantCultureIgnoreCase);
 		}
 
-		private bool IsSignatureValid(WayForPayPaymentPlugin processor, FormCollection form)
+		private bool IsValidSignature(FormCollection form)
 		{
 			var collection = form.AllKeys.ToDictionary(k => k, v => (object)form[v]);
-			var sign = processor.GetResponseSignature(collection);
-			return sign == GetValue(form, "merchantSignature");
+			return _wayForPayService.IsValidSignature(collection, GetValue(form, "merchantSignature"));
 		}
 
 		private bool IsOrderApproved(FormCollection form)
