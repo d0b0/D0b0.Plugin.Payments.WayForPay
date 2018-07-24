@@ -4,15 +4,19 @@
 	{
 		public static string PaymentUrl = "https://secure.wayforpay.com/pay";
 
+		public static string ApiUrl = "https://api.wayforpay.com/api";
+
 		public static string OkReasonCode = "1100";
 
 		public static string OrderStatusApproved = "Approved";
 
 		public static string PaymentMethodPrefix = "WayForPay IPN:";
 
+		public static string InvoicePrefix = "invoice_";
+
 		public static string SignatureSeparator = ";";
 
-		public static string[] KeysForSignature = {
+		public static string[] SigKeys = {
 			"merchantAccount",
 			"merchantDomainName",
 			"orderReference",
@@ -24,7 +28,7 @@
 			"productPrice"
 		};
 
-		public static string[] KeysForResponseSignature = {
+		public static string[] ResSigKeys = {
 			"merchantAccount",
 			"orderReference",
 			"amount",
@@ -33,6 +37,12 @@
 			"cardPan",
 			"transactionStatus",
 			"reasonCode"
+		};
+
+		public static string[] AckSigKeys = {
+			"orderReference",
+			"status",
+			"time"
 		};
 	}
 }

@@ -4,6 +4,7 @@ using System.Text;
 using System.Web;
 using System.Web.Routing;
 using D0b0.Plugin.Payments.WayForPay.Controllers;
+using D0b0.Plugin.Payments.WayForPay.Domain;
 using D0b0.Plugin.Payments.WayForPay.Services;
 using Newtonsoft.Json;
 using Nop.Core.Domain.Orders;
@@ -41,7 +42,7 @@ namespace D0b0.Plugin.Payments.WayForPay
 
 		public void PostProcessPayment(PostProcessPaymentRequest postProcessPaymentRequest)
 		{
-			var model = _wayForPayService.BuildPaymentRequestModel(postProcessPaymentRequest);
+			var model = _wayForPayService.BuildPaymentRequest(postProcessPaymentRequest.Order);
 
 			if (_wayForPayPaymentSettings.UseWidget)
 			{
@@ -200,13 +201,13 @@ namespace D0b0.Plugin.Payments.WayForPay
 			};
 		}
 
-		private void ProcessWidgetPayment(PaymentRequestModel model)
+		private void ProcessWidgetPayment(PaymentRequest model)
 		{
 			var config = new
 			{
 				merchantAccount = model.MerchantAccount,
 				merchantDomainName = model.MerchantDomainName,
-				authorizationType = model.AuthorizationType,
+				merchantAuthType = model.MerchantAuthType,
 				merchantSignature = model.MerchantSignature,
 				merchantTransactionSecureType = model.MerchantTransactionSecureType,
 				orderReference = model.OrderReference,
@@ -249,13 +250,13 @@ namespace D0b0.Plugin.Payments.WayForPay
 			_httpContext.Response.End();
 		}
 
-		private void ProcessRedirectPayment(PaymentRequestModel model)
+		private void ProcessRedirectPayment(PaymentRequest model)
 		{
 			Dictionary<string, object> postData = new Dictionary<string, object>
 			{
 				{"orderReference", model.OrderReference},
 				{"orderDate", model.OrderDate},
-				{"merchantAuthType", model.AuthorizationType},
+				{"merchantAuthType", model.MerchantAuthType},
 				{"merchantAccount", model.MerchantAccount},
 				{"merchantDomainName", model.MerchantDomainName},
 				{"merchantTransactionSecureType", model.MerchantTransactionSecureType},

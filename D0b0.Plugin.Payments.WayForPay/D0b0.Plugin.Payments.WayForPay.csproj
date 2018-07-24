@@ -74,15 +74,20 @@
     <Reference Include="System.Net.Http" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Controllers\InvoiceWayForPayController.cs" />
     <Compile Include="Controllers\PaymentWayForPayController.cs" />
     <Compile Include="DependencyRegistrar.cs" />
+    <Compile Include="Domain\Ack.cs" />
+    <Compile Include="Domain\BaseRequest.cs" />
+    <Compile Include="Domain\InvoiceStatus.cs" />
+    <Compile Include="Domain\InvoiceRequest.cs" />
     <Compile Include="Models\ConfigurationModel.cs" />
     <Compile Include="Models\PublicInfoModel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RouteProvider.cs" />
     <Compile Include="Services\IWayForPayService.cs" />
     <Compile Include="Services\WayForPayService.cs" />
-    <Compile Include="PaymentRequestModel.cs" />
+    <Compile Include="Domain\PaymentRequest.cs" />
     <Compile Include="WayForPayConstants.cs" />
     <Compile Include="WayForPayPaymentSettings.cs" />
     <Compile Include="WayForPayPaymentPlugin.cs" />

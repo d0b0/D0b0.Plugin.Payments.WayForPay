@@ -6,5 +6,6 @@ namespace D0b0.Plugin.Payments.WayForPay.Models
 	{
 		public int OrderId { get; set; }
 		public bool ShowInvoiceButton { get; set; }
+		public string Message { get; set; }
 	}
 }

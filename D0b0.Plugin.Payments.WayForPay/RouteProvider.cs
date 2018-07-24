@@ -15,6 +15,12 @@ namespace D0b0.Plugin.Payments.WayForPay
 				new { controller = "PaymentWayForPay", action = "IPNHandler" },
 				new[] { "D0b0.Plugin.Payments.WayForPay.Controllers" }
 			);
+
+			routes.MapRoute("Plugin.Payments.WayForPay.IPN",
+				"Plugins/PaymentWayForPay/IPN",
+				new { controller = "InvoiceWayForPay", action = "IPN" },
+				new[] { "D0b0.Plugin.Payments.WayForPay.Controllers" }
+			);
 		}
 
 		#endregion

@@ -1,11 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
+using System.Threading.Tasks;
 using System.Web.Mvc;
 using D0b0.Plugin.Payments.WayForPay.Models;
 using D0b0.Plugin.Payments.WayForPay.Services;
-using Nop.Admin.Models.Orders;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 using Nop.Core;
 using Nop.Core.Domain.Orders;
 using Nop.Core.Domain.Payments;
@@ -116,11 +119,11 @@ namespace D0b0.Plugin.Payments.WayForPay.Controllers
 		{
 			var model = new PublicInfoModel();
 
-			OrderModel orderModel = additionalData as OrderModel;
-			if (orderModel != null)
+			int orderId = (int)additionalData;
+			if (orderId != 0)
 			{
-				var order = _orderService.GetOrderById(orderModel.Id);
-				model.OrderId = orderModel.Id;
+				var order = _orderService.GetOrderById(orderId);
+				model.OrderId = orderId;
 				model.ShowInvoiceButton = order.PaymentMethodSystemName == "Payments.WayForPay"
 					&& order.PaymentStatusId != (int)PaymentStatus.Paid;
 			}
@@ -131,14 +134,38 @@ namespace D0b0.Plugin.Payments.WayForPay.Controllers
 		[HttpPost]
 		[AdminAuthorize]
 		[ChildActionOnly]
-		public ActionResult PublicInfo(ConfigurationModel model)
+		public async Task<ActionResult> PublicInfo(int orderId)
 		{
 			if (!ModelState.IsValid)
 			{
-				return PublicInfo("");
+				return View("~/Plugins/Payments.WayForPay/Views/PaymentWayForPay/PublicInfo.cshtml", new PublicInfoModel
+				{
+					ShowInvoiceButton = false
+				});
 			}
 
-			return View("~/Plugins/Payments.WayForPay/Views/PaymentWayForPay/PublicInfo.cshtml", model);
+			var order = _orderService.GetOrderById(orderId);
+			var request = _wayForPayService.BuildInvoiceRequest(order);
+			var client = new HttpClient();
+			string json = JsonConvert.SerializeObject(request, new JsonSerializerSettings
+			{
+				ContractResolver = new CamelCasePropertyNamesContractResolver()
+			});
+			WriteOrderNote(order, json);
+
+			var response = client.PostAsync(new Uri(WayForPayConstants.ApiUrl),
+				new StringContent(json, Encoding.UTF8, "application/json")).Result;
+			response.EnsureSuccessStatusCode();
+
+			var content = await response.Content.ReadAsStringAsync();
+			WriteOrderNote(order, content);
+
+			return View("~/Plugins/Payments.WayForPay/Views/PaymentWayForPay/PublicInfo.cshtml", new PublicInfoModel
+			{
+				OrderId = orderId,
+				ShowInvoiceButton = false,
+				Message = content //_localizationService.GetResource("Plugins.Payments.WayForPay.SentInvoice")
+			});
 		}
 
 		[ValidateInput(false)]
@@ -150,10 +177,10 @@ namespace D0b0.Plugin.Payments.WayForPay.Controllers
 				!processor.IsPaymentMethodActive(_paymentSettings) || !processor.PluginDescriptor.Installed)
 				throw new NopException("WayForPay module cannot be loaded");
 
-			var nopOrderIdStr = GetValue(form, "orderReference");
-			int nopOrderId;
-			int.TryParse(nopOrderIdStr, out nopOrderId);
-			var order = _orderService.GetOrderById(nopOrderId);
+			var orderIdStr = GetValue(form, "orderReference");
+			int orderId;
+			int.TryParse(orderIdStr, out orderId);
+			var order = _orderService.GetOrderById(orderId);
 
 			if (order == null)
 			{
@@ -182,7 +209,6 @@ namespace D0b0.Plugin.Payments.WayForPay.Controllers
 			}
 
 			var newPaymentStatus = PaymentStatus.Pending;
-
 			if (IsOrderApproved(form))
 			{
 				newPaymentStatus = PaymentStatus.Paid;
