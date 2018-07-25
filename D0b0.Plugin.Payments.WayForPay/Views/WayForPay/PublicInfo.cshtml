@@ -1,0 +1,21 @@
+﻿@{
+	Layout = "";
+}
+@model D0b0.Plugin.Payments.WayForPay.Models.PublicInfoModel
+
+@if (Model.ShowInvoiceButton)
+{
+	using (Html.BeginForm())
+	{
+		@Html.HiddenFor(model => model.OrderId)
+		<button type="submit" name="invoice_way4pay" id="invoice_way4pay" class="btn btn-primary">
+			Send Invoice (WayForPay)
+		</button>
+	}
+}
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+	<div>
+		@Model.Message
+	</div>
+}

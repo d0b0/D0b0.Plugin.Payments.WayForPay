@@ -1,14 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Http;
 using System.Text;
-using System.Threading.Tasks;
 using System.Web.Mvc;
 using D0b0.Plugin.Payments.WayForPay.Models;
 using D0b0.Plugin.Payments.WayForPay.Services;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
 using Nop.Core;
 using Nop.Core.Domain.Orders;
 using Nop.Core.Domain.Payments;
@@ -80,9 +76,11 @@ namespace D0b0.Plugin.Payments.WayForPay.Controllers
 				AdditionalFee = _wayForPayPaymentSettings.AdditionalFee,
 				AdditionalFeePercentage = _wayForPayPaymentSettings.AdditionalFeePercentage,
 				UseWidget = _wayForPayPaymentSettings.UseWidget,
+				SendInvoiceAfterTry = _wayForPayPaymentSettings.SendInvoiceAfterTry,
+				InvoiceTimeout = _wayForPayPaymentSettings.InvoiceTimeout,
 			};
 
-			return View("~/Plugins/Payments.WayForPay/Views/PaymentWayForPay/Configure.cshtml", model);
+			return View("~/Plugins/Payments.WayForPay/Views/WayForPay/Configure.cshtml", model);
 		}
 
 		[HttpPost]
@@ -101,71 +99,19 @@ namespace D0b0.Plugin.Payments.WayForPay.Controllers
 			_wayForPayPaymentSettings.AdditionalFee = model.AdditionalFee;
 			_wayForPayPaymentSettings.AdditionalFeePercentage = model.AdditionalFeePercentage;
 			_wayForPayPaymentSettings.UseWidget = model.UseWidget;
-			_settingService.SaveSetting(_wayForPayPaymentSettings);
+			_wayForPayPaymentSettings.SendInvoiceAfterTry = model.SendInvoiceAfterTry;
+			_wayForPayPaymentSettings.InvoiceTimeout = model.InvoiceTimeout;
 
+			_settingService.SaveSetting(_wayForPayPaymentSettings);
 			SuccessNotification(_localizationService.GetResource("Admin.Plugins.Saved"));
 
-			return View("~/Plugins/Payments.WayForPay/Views/PaymentWayForPay/Configure.cshtml", model);
+			return View("~/Plugins/Payments.WayForPay/Views/WayForPay/Configure.cshtml", model);
 		}
 
 		[ChildActionOnly]
 		public ActionResult PaymentInfo()
 		{
-			return View("~/Plugins/Payments.WayForPay/Views/PaymentWayForPay/PaymentInfo.cshtml");
-		}
-
-		[ChildActionOnly]
-		public ActionResult PublicInfo(string widgetZone, object additionalData = null)
-		{
-			var model = new PublicInfoModel();
-
-			int orderId = (int)additionalData;
-			if (orderId != 0)
-			{
-				var order = _orderService.GetOrderById(orderId);
-				model.OrderId = orderId;
-				model.ShowInvoiceButton = order.PaymentMethodSystemName == "Payments.WayForPay"
-					&& order.PaymentStatusId != (int)PaymentStatus.Paid;
-			}
-
-			return View("~/Plugins/Payments.WayForPay/Views/PaymentWayForPay/PublicInfo.cshtml", model);
-		}
-
-		[HttpPost]
-		[AdminAuthorize]
-		[ChildActionOnly]
-		public async Task<ActionResult> PublicInfo(int orderId)
-		{
-			if (!ModelState.IsValid)
-			{
-				return View("~/Plugins/Payments.WayForPay/Views/PaymentWayForPay/PublicInfo.cshtml", new PublicInfoModel
-				{
-					ShowInvoiceButton = false
-				});
-			}
-
-			var order = _orderService.GetOrderById(orderId);
-			var request = _wayForPayService.BuildInvoiceRequest(order);
-			var client = new HttpClient();
-			string json = JsonConvert.SerializeObject(request, new JsonSerializerSettings
-			{
-				ContractResolver = new CamelCasePropertyNamesContractResolver()
-			});
-			WriteOrderNote(order, json);
-
-			var response = client.PostAsync(new Uri(WayForPayConstants.ApiUrl),
-				new StringContent(json, Encoding.UTF8, "application/json")).Result;
-			response.EnsureSuccessStatusCode();
-
-			var content = await response.Content.ReadAsStringAsync();
-			WriteOrderNote(order, content);
-
-			return View("~/Plugins/Payments.WayForPay/Views/PaymentWayForPay/PublicInfo.cshtml", new PublicInfoModel
-			{
-				OrderId = orderId,
-				ShowInvoiceButton = false,
-				Message = content //_localizationService.GetResource("Plugins.Payments.WayForPay.SentInvoice")
-			});
+			return View("~/Plugins/Payments.WayForPay/Views/WayForPay/PaymentInfo.cshtml");
 		}
 
 		[ValidateInput(false)]
@@ -198,13 +144,13 @@ namespace D0b0.Plugin.Payments.WayForPay.Controllers
 
 			if (!IsPaymentValid(form))
 			{
-				WriteOrderNote(order, WayForPayConstants.PaymentMethodPrefix + " Not valid payment");
+				WriteOrderNote(order, WayForPayConstants.NotePaymentPrefix + " Not valid payment");
 				return RedirectToRoute("OrderDetails", new { orderId = order.Id });
 			}
 
 			if (!IsValidSignature(form))
 			{
-				WriteOrderNote(order, WayForPayConstants.PaymentMethodPrefix + " Not valid signature");
+				WriteOrderNote(order, WayForPayConstants.NotePaymentPrefix + " Not valid signature");
 				return RedirectToRoute("OrderDetails", new { orderId = order.Id });
 			}
 
@@ -215,7 +161,7 @@ namespace D0b0.Plugin.Payments.WayForPay.Controllers
 			}
 
 			var sb = new StringBuilder();
-			sb.AppendLine(WayForPayConstants.PaymentMethodPrefix);
+			sb.AppendLine(WayForPayConstants.NotePaymentPrefix);
 			sb.AppendLine("New payment status: " + newPaymentStatus);
 
 			WriteOrderNote(order, sb.ToString());
@@ -259,7 +205,7 @@ namespace D0b0.Plugin.Payments.WayForPay.Controllers
 		private void WriteResponseNote(Order order, FormCollection form)
 		{
 			var sbDebug = new StringBuilder();
-			sbDebug.AppendLine(WayForPayConstants.PaymentMethodPrefix);
+			sbDebug.AppendLine(WayForPayConstants.NotePaymentPrefix);
 
 			foreach (var key in form.AllKeys)
 			{

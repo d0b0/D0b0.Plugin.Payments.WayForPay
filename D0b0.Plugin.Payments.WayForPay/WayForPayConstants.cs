@@ -10,7 +10,9 @@
 
 		public static string OrderStatusApproved = "Approved";
 
-		public static string PaymentMethodPrefix = "WayForPay IPN:";
+		public static string NotePaymentPrefix = "WayForPay Payment IPN:";
+
+		public static string NoteInvoicePrefix = "WayForPay Invoice IPN:";
 
 		public static string InvoicePrefix = "invoice_";
 

@@ -192,7 +192,7 @@ namespace D0b0.Plugin.Payments.WayForPay
 		public void GetDisplayWidgetRoute(string widgetZone, out string actionName, out string controllerName, out RouteValueDictionary routeValues)
 		{
 			actionName = "PublicInfo";
-			controllerName = "PaymentWayForPay";
+			controllerName = "InvoiceWayForPay";
 			routeValues = new RouteValueDictionary
 			{
 				{"Namespaces", "D0b0.Plugin.Payments.WayForPay.Controllers"},

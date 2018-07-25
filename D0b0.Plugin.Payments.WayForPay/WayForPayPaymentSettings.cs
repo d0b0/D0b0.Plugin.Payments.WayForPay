@@ -10,5 +10,7 @@ namespace D0b0.Plugin.Payments.WayForPay
 		public decimal AdditionalFee { get; set; }
 		public bool AdditionalFeePercentage { get; set; }
 		public bool UseWidget { get; set; }
+		public bool SendInvoiceAfterTry { get; set; }
+		public int InvoiceTimeout { get; set; }
 	}
 }

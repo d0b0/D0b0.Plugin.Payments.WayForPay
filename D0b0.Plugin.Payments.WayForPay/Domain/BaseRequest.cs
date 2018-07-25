@@ -9,6 +9,7 @@
 		public string Language { get; set; }
 		public string ServiceUrl { get; set; }
 		public int OrderDate { get; set; }
+		public int OrderTimeout { get; set; }
 		public string Amount { get; set; }
 		public string Currency { get; set; }
 		public string[] ProductName { get; set; }

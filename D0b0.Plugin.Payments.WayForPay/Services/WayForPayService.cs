@@ -54,8 +54,9 @@ namespace D0b0.Plugin.Payments.WayForPay.Services
 		{
 			var request = BuildRequest<InvoiceRequest>(order);
 
+			request.OrderTimeout = _wayForPayPaymentSettings.InvoiceTimeout;
 			request.ServiceUrl = _webHelper.GetStoreLocation(false) + "Plugins/PaymentWayForPay/IPN";
-			//request.ServiceUrl = "http://4793f44d.ngrok.io/Plugins/PaymentWayForPay/IPN";
+			//request.ServiceUrl = "http://48452347.ngrok.io/Plugins/PaymentWayForPay/IPN";
 
 			return request;
 		}
