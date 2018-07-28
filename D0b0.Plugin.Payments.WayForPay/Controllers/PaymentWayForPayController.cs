@@ -143,6 +143,7 @@ namespace D0b0.Plugin.Payments.WayForPay.Controllers
 		[HttpPost]
 		[AdminAuthorize]
 		[ChildActionOnly]
+		[FormValueRequired("invoice_way4pay")]
 		public async Task<ActionResult> PublicInfo(int orderId)
 		{
 			if (!ModelState.IsValid)
