@@ -39,8 +39,7 @@ namespace D0b0.Plugin.Payments.WayForPay.Services
 		{
 			var request = BuildRequest<PaymentRequest>(order);
 			request.MerchantTransactionSecureType = "AUTO";
-			request.ReturnUrl = _webHelper.GetStoreLocation(false) + "Plugins/PaymentWayForPay/IPNHandler";
-
+			request.ReturnUrl = $"{_webHelper.GetStoreLocation()}checkout/completed/{order.Id}";
 			request.ClientCity = order.BillingAddress.City;
 			request.ClientAddress = order.BillingAddress.Address1;
 
@@ -53,17 +52,15 @@ namespace D0b0.Plugin.Payments.WayForPay.Services
 		public InvoiceRequest BuildInvoiceRequest(Order order)
 		{
 			var request = BuildRequest<InvoiceRequest>(order);
-
 			request.OrderTimeout = _wayForPayPaymentSettings.InvoiceTimeout;
-			request.ServiceUrl = _webHelper.GetStoreLocation(false) + "Plugins/PaymentWayForPay/IPN";
-			//request.ServiceUrl = "http://48452347.ngrok.io/Plugins/PaymentWayForPay/IPN";
 
 			return request;
 		}
 
 		public bool IsValidSignature(IDictionary<string, object> data, string merchantSignature)
 		{
-			return GetSignature(data, WayForPayConstants.ResSigKeys) == merchantSignature;
+			return !string.IsNullOrEmpty(merchantSignature)
+				&& GetSignature(data, WayForPayConstants.ResSigKeys) == merchantSignature;
 		}
 
 		public Ack CreateAcknowledgement(string orderRef)
@@ -98,7 +95,8 @@ namespace D0b0.Plugin.Payments.WayForPay.Services
 				Amount = order.OrderTotal.ToString("0.00", CultureInfo.InvariantCulture),
 				Currency = _currencyService.GetCurrencyById(_currencySettings.PrimaryStoreCurrencyId).CurrencyCode,
 				Language = "RU",
-				ServiceUrl = _webHelper.GetStoreLocation(false)
+				ServiceUrl = $"{_webHelper.GetStoreLocation()}Plugins/PaymentWayForPay/IPN"
+				//ServiceUrl = "http://e379500c.ngrok.io/Plugins/PaymentWayForPay/IPN"
 			};
 
 			//products

@@ -7,6 +7,7 @@ using D0b0.Plugin.Payments.WayForPay.Controllers;
 using D0b0.Plugin.Payments.WayForPay.Domain;
 using D0b0.Plugin.Payments.WayForPay.Services;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 using Nop.Core.Domain.Orders;
 using Nop.Core.Domain.Payments;
 using Nop.Core.Plugins;
@@ -192,7 +193,7 @@ namespace D0b0.Plugin.Payments.WayForPay
 		public void GetDisplayWidgetRoute(string widgetZone, out string actionName, out string controllerName, out RouteValueDictionary routeValues)
 		{
 			actionName = "PublicInfo";
-			controllerName = "InvoiceWayForPay";
+			controllerName = "PaymentWayForPay";
 			routeValues = new RouteValueDictionary
 			{
 				{"Namespaces", "D0b0.Plugin.Payments.WayForPay.Controllers"},
@@ -201,30 +202,14 @@ namespace D0b0.Plugin.Payments.WayForPay
 			};
 		}
 
-		private void ProcessWidgetPayment(PaymentRequest model)
+		private void ProcessWidgetPayment(PaymentRequest request)
 		{
-			var config = new
+			string config = JsonConvert.SerializeObject(request, new JsonSerializerSettings
 			{
-				merchantAccount = model.MerchantAccount,
-				merchantDomainName = model.MerchantDomainName,
-				merchantAuthType = model.MerchantAuthType,
-				merchantSignature = model.MerchantSignature,
-				merchantTransactionSecureType = model.MerchantTransactionSecureType,
-				orderReference = model.OrderReference,
-				orderDate = model.OrderDate,
-				amount = model.Amount,
-				currency = model.Currency,
-				productName = model.ProductName,
-				productPrice = model.ProductPrice,
-				productCount = model.ProductCount,
-				clientFirstName = model.ClientFirstName,
-				clientLastName = model.ClientLastName,
-				clientEmail = model.ClientEmail,
-				clientPhone = model.ClientPhone,
-				language = model.Language,
-			};
+				ContractResolver = new CamelCasePropertyNamesContractResolver()
+			});
 			var script = "<script type=\"text/javascript\">" +
-				"var config = " + JsonConvert.SerializeObject(config) + ";" +
+				"var config = " + config + ";" +
 				"var data = undefined;" +
 				"var wayforpay = new Wayforpay();" +
 				"var pay = function () {" +
@@ -234,7 +219,7 @@ namespace D0b0.Plugin.Payments.WayForPay
 				"function (response) { });" +
 				"}; pay(); " +
 				"window.addEventListener(\"message\", function(event){ " +
-				"if(event.data === 'WfpWidgetEventClose') { $.redirect('" + model.ReturnUrl + "', data || config); } });" +
+				"if(event.data === 'WfpWidgetEventClose') { $.redirect('" + request.ReturnUrl + "', data || config); } });" +
 				"</script>";
 			var content = new
 			{

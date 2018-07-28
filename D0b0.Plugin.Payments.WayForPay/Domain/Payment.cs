@@ -1,6 +1,6 @@
 ﻿namespace D0b0.Plugin.Payments.WayForPay.Domain
 {
-	public class InvoiceStatus
+	public class Payment
 	{
 		public string MerchantAccount { get; set; }
 		public string OrderReference { get; set; }

@@ -8,11 +8,9 @@
 
 		public static string OkReasonCode = "1100";
 
-		public static string OrderStatusApproved = "Approved";
+		public static string OrderApprovedStatus = "Approved";
 
-		public static string NotePaymentPrefix = "WayForPay Payment IPN:";
-
-		public static string NoteInvoicePrefix = "WayForPay Invoice IPN:";
+		public static string NotePaymentPrefix = "WayForPay IPN:";
 
 		public static string InvoicePrefix = "invoice_";
 
