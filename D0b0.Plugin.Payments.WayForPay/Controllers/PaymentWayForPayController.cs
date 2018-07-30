@@ -85,7 +85,7 @@ namespace D0b0.Plugin.Payments.WayForPay.Controllers
 				AdditionalFee = _wayForPayPaymentSettings.AdditionalFee,
 				AdditionalFeePercentage = _wayForPayPaymentSettings.AdditionalFeePercentage,
 				UseWidget = _wayForPayPaymentSettings.UseWidget,
-				SendInvoiceAfterTry = _wayForPayPaymentSettings.SendInvoiceAfterTry,
+				SendInvoice = _wayForPayPaymentSettings.SendInvoice,
 				InvoiceTimeout = _wayForPayPaymentSettings.InvoiceTimeout,
 			};
 
@@ -108,7 +108,7 @@ namespace D0b0.Plugin.Payments.WayForPay.Controllers
 			_wayForPayPaymentSettings.AdditionalFee = model.AdditionalFee;
 			_wayForPayPaymentSettings.AdditionalFeePercentage = model.AdditionalFeePercentage;
 			_wayForPayPaymentSettings.UseWidget = model.UseWidget;
-			_wayForPayPaymentSettings.SendInvoiceAfterTry = model.SendInvoiceAfterTry;
+			_wayForPayPaymentSettings.SendInvoice = model.SendInvoice;
 			_wayForPayPaymentSettings.InvoiceTimeout = model.InvoiceTimeout;
 
 			_settingService.SaveSetting(_wayForPayPaymentSettings);
@@ -133,7 +133,8 @@ namespace D0b0.Plugin.Payments.WayForPay.Controllers
 			{
 				var order = _orderService.GetOrderById(orderId);
 				model.OrderId = orderId;
-				model.ShowInvoiceButton = order.PaymentMethodSystemName == "Payments.WayForPay"
+				model.ShowInvoiceButton = _wayForPayPaymentSettings.SendInvoice
+					&& order.PaymentMethodSystemName == "Payments.WayForPay"
 					&& order.PaymentStatusId != (int)PaymentStatus.Paid;
 			}
 
@@ -146,7 +147,7 @@ namespace D0b0.Plugin.Payments.WayForPay.Controllers
 		[FormValueRequired("invoice_way4pay")]
 		public async Task<ActionResult> PublicInfo(int orderId)
 		{
-			if (!ModelState.IsValid)
+			if (!_wayForPayPaymentSettings.SendInvoice || !ModelState.IsValid)
 			{
 				return View("~/Plugins/Payments.WayForPay/Views/WayForPay/PublicInfo.cshtml", new PublicInfoModel
 				{
@@ -217,7 +218,7 @@ namespace D0b0.Plugin.Payments.WayForPay.Controllers
 				WriteOrderNote(order, "Not valid signature");
 				return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
 			}
-			
+
 			if (IsOrderPaid(data.ReasonCode, data.TransactionStatus) && _orderProcessingService.CanMarkOrderAsPaid(order))
 			{
 				WriteOrderNote(order, $"New payment status: {PaymentStatus.Paid}");

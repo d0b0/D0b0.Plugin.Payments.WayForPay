@@ -27,8 +27,8 @@ namespace D0b0.Plugin.Payments.WayForPay.Models
 		[NopResourceDisplayName("Plugins.Payments.WayForPay.UseWidget")]
 		public bool UseWidget { get; set; }
 
-		[NopResourceDisplayName("Plugins.Payments.WayForPay.SendInvoiceAfterTry")]
-		public bool SendInvoiceAfterTry { get; set; }
+		[NopResourceDisplayName("Plugins.Payments.WayForPay.SendInvoice")]
+		public bool SendInvoice { get; set; }
 
 		/// <summary>
 		/// Invoice timeout in seconds.
